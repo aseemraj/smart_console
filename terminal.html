@@ -21,8 +21,7 @@
 			term.echo("Checking if any information related to \"" + object + "\" is present in the database...");
 			setTimeout(function() {
 				var found = 0;
-				var retrieve = localStorage.getItem("xperia");
-				var retrieveterm = localStorage.getItem("term");
+				var retrieve = localStorage.getItem("term");
 				if(retrieve)
 				{
 					retrieve = JSON.parse(retrieve);
@@ -31,62 +30,14 @@
 						var elements = retrieve[i].split(" ");
 						if(elements.indexOf(object)>-1)
 						{
-							found = 1;
+							term.echo("Data Exists!");
 							break;
 						}
 					}
 				}
-				if(retrieveterm)
-				{
-					retrieveterm = JSON.parse(retrieveterm);
-					if(retrieveterm.length>0)
-					{
-						var done = [];
-						for(var i=0; i<retrieveterm.length; i++)
-						{
-							if(done.indexOf(retrieveterm[i])<0)
-							{
-								var elements = retrieveterm[i].split(" ");
-								var objects = object.split(" ");
-								for(var j=0; j<objects.length; j++)	
-								{
-									if(elements.indexOf(objects[j])>-1)
-									{
-										if(found==1)
-											found = 3;
-										else
-											found = 2
-										break;
-									}
-								}
-								if(found==2 || found==3)
-									break;
-							}
-						}
-					}
-				}
-				if(found==0)
-				{
-					term.error("Sorry ... \""+object+"\" was not found in database.");
-				}
-				else if(found==1)
-				{
-					term.echo("Success! all or a part of \""+object+"\" found in the travelog database.");
-					term.echo("use \"show\" command to view the results.");
-				}
-				else if(found==2)
-				{
-					term.echo("Success! all or a part of \""+object+"\" found in the terminal database.");
-					term.echo("use \"view\" command to view the results.");
-				}
-				else if(found==3)
-				{
-					term.echo("Success! all or a part of \""+object+"\" found in both databases (terminal and travelog).");
-					term.echo("use \"view\" and \"show\" commands to see the results.");
-				}
 				else
 				{
-					term.error("Unknown error!");
+					term.error("You haven't stored anything yet!");
 				}
 				term.resume();
 			}, 1200);
