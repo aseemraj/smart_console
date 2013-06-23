@@ -17,36 +17,133 @@
     <script src="js/jquery-1.7.1.min.js"></script>
     <script src="js/jquery.terminal-min.js"></script>
 	<script type="text/javascript">
-		function find(term, object) {
-			term.echo("Checking if any information related to \"" + object + "\" is present in the database...");
+		function rev(value) {
+			var reverse = ""
+			for(var i=0; i<value.length; i++)
+				reverse += value[value.length-1-i];
+			return reverse;
+		}
+		function permute(term, object) {
+			var p = "";
+			var words = [];
+			var letters = object.trim().split('');
+			for(var i=0; i<letters.length; i++)
+			{
+				p = "";
+				for(var j=0; j<letters.length; j++)
+				{
+					if(j+i<letters.length)
+						p += letters[j+i];
+					else
+						break;
+				}
+				for(var j=0; j<i; j++)
+				{
+					p += letters[j];
+				}
+				if(words.indexOf(p)<0)
+					words.push(p);
+				if(words.indexOf(rev(p))<0)
+					words.push(rev(p));
+			}
+			var c = 0;
+			var last = "";
+			var nlast = "";
+			if(letters.length<15)
+				d = 7;
+			else if(letters.length>=15 && letters.length<31)
+				d = 5;
+			else if(letters.length>30 && letters.length<35)
+				d = 4;
+			else
+				d = 2;
+			for(var i=0; i<=words.length-d; i+=d, c++)
+			{
+				nlast = "";
+				for(var j=0; j<d; j++)
+					nlast += words[i+j]+'\t\t'
+				term.echo(nlast.trim());
+			}
+			for(i=0; i<words.length-d*c; i++)
+				last += words[d*c+i]+"\t\t"
+			if(last!="")
+				term.echo(last);
+			
+		}
+		
+		function find(term, object)
+		{
+			term.echo("Checking if any information related to \"" + object + "\" is present in the database ...");
 			setTimeout(function() {
 				var found = 0;
 				var retrieve = localStorage.getItem("term");
 				if(retrieve)
 				{
+					var count = 0;
 					retrieve = JSON.parse(retrieve);
 					for(var i=0; i<retrieve.length; i++)
 					{
-						var elements = retrieve[i].split(" ");
-						if(elements.indexOf(object)>-1)
+						//var elements = retrieve[i].split(" ");
+						if(retrieve[i].indexOf(object)>-1)
 						{
-							term.echo("Data Exists!");
-							break;
+							found = 1;
+							count++;
 						}
+					}
+					if(found==0)
+					{
+						var count=0;
+						var scattered = [];
+						var elements = object.split(" ");
+						for(var i=0; i<retrieve.length; i++)
+						{
+							for(j=0; j<elements.length; j++)
+							{
+								if(retrieve[i].indexOf(elements[j])>-1)
+								{
+									found = 1;
+									if(scattered.indexOf(retrieve[i]<0))
+									{
+										scattered.push(retrieve[i]);
+										count++;
+									}
+									break;
+								}
+							}
+						}
+						if(found==1)
+						{
+							term.error("No data found relating to \""+object+"\"");
+							if(count==1)
+								term.echo("but parts of the query were found at 1 place.");
+							else
+								term.echo("but parts of the query were found at "+count+" places.");
+							term.echo("Use view command to see the traced data.");
+						}
+						else
+							term.error("Nothing found relating to your query.");
+					}
+					else
+					{
+						if(count==1)
+							term.echo("Query found at 1 place.");
+						else
+							term.echo("Query found at "+count+" places.");
 					}
 				}
 				else
 				{
 					term.error("You haven't stored anything yet!");
 				}
+				term.echo(" ");
 				term.resume();
-			}, 1200);
+			}, 200);
 			term.pause();
 		}
 		
 		function view(term, object) {
 			if(object==undefined)
-				term.echo("Please wait while all data is fetched from the terminal local-storage ...");
+				term.echo("Please wait while all data is fetched from the local-storage ...");
 			else
 				term.echo("Finding \"" + object + "\" in the database ...");
 			setTimeout(function() {
@@ -60,64 +157,61 @@
 							term.echo((i+1)+". "+retrieve[i]+".");
 					}
 					else
-						term.error("No data found!");
+						term.error("No data stored!");
 				}
 				
 				else
 				{
-					var found = 0;
-					var retrievet = localStorage.getItem("term");
-					var retrieve = localStorage.getItem("xperia");
+					var retrieve = localStorage.getItem("term");
 					var j=0;
-					if(retrieve!=null)
+					var found = 0;
+					if(retrieve)
 					{
 						retrieve = JSON.parse(retrieve);
 						for(var i=0; i<retrieve.length; i++)
 						{
-							var elements = retrieve[i].split(" ");
-							if(elements.indexOf(object)>-1)
+							if(retrieve[i].indexOf(object)>-1)
 							{
-								found = 1
+								found = 1;
 								term.echo((j+1) + ". " + retrieve[i]);
 								j++;
 							}
 						}
-					}
-					if(retrievet!=null)
-					{
-						retrievet = JSON.parse(retrievet);
-						if(retrievet.length>0)
+						if(found==0)
 						{
-							var done = [];
-							for(var i=0; i<retrievet.length; i++)
+							var scattered = [];
+							var elements = object.split(" ");
+							//term.echo("No data found relating to \""+object+"\" but parts of the query were found at different places.\nThe traced data is listed below:");
+							for(var i=0; i<retrieve.length; i++)
 							{
-								if(done.indexOf(retrievet[i])<0)
+								for(j=0; j<elements.length; j++)
 								{
-									var elements = retrievet[i].split(" ");
-									var objects = object.split(" ");
-									for(var k=0; k<objects.length; k++)	
+									if(retrieve[i].indexOf(elements[j])>-1)
 									{
-										if(elements.indexOf(objects[k])>-1)
-										{
-											found = 1
-											term.echo((j+1) + ". " + retrievet[i]);
-											j++;
-											done.push(retrievet[i]);
-											break;
-										}
+										found = 1;
+										if(scattered.indexOf(retrieve[i]<0))
+											scattered.push(retrieve[i]);
+										break;
 									}
 								}
 							}
+							if(found==1)
+							{
+								term.error("No data found relating to \""+object+"\"");
+								term.echo("but parts of the query were found at different places.\nThe traced data is listed below:");
+								for(i=0; i<scattered.length; i++)
+									term.echo((i+1) + ". " + scattered[i]);
+							}
+							else
+								term.error("Nothing found relating to your query.");
 						}
 					}
-					if(found==0)
-					{
-						term.error("Object not found in database.");
-					}
+					else
+						term.error("Local-storage is vacant. No data found.");
 				}
 				term.echo(" ");
 				term.resume();
-			}, 1000);
+			}, 200);
 			term.pause();
 		}
 
@@ -127,14 +221,13 @@
 			else
 			{
 				term.echo("Attempting to clean ...");
-				term.error("Warning: If the object is found at more than one places, all occurences will be deleted.");
 			}
 			setTimeout(function() {
 				var retrieve = localStorage.getItem("term");
 				if(name=="all")
 				{
 					localStorage.removeItem("term");
-					term.echo("Everything deleted (nothing from the travelog).");
+					term.echo("Everything deleted.");
 				}
 				else if(retrieve==null)
 				{
@@ -155,7 +248,10 @@
 							i--;
 						}
 					}
-					localStorage.setItem("term", JSON.stringify(retrieve));
+					if(retrieve.length>0)
+						localStorage.setItem("term", JSON.stringify(retrieve));
+					else
+						localStorage.removeItem("term");
 					if(found==0)
 						term.error("Content not found. Nothing was deleted.");
 					else
@@ -163,12 +259,12 @@
 				}
 				term.echo(" ");
 				term.resume();
-			}, 1000);
+			}, 200);
 			term.pause();
 		}
 
 		function store(term, object) {
-			term.echo("Storing provided data in database ...");
+			term.echo("Storing provided data ...");
 			setTimeout(function() {
 				var retrieve = localStorage.getItem("term");
 				var found = 0;
@@ -180,7 +276,7 @@
 						if(retrieve[i]==object)
 						{
 							found = 1;
-							term.error("This piece of data is already present in storage. Nothing was stored.");
+							term.error("\""+object+"\" is already present in storage. Nothing was stored.");
 							break;
 						}
 					}
@@ -200,169 +296,240 @@
 				}
 				term.echo(" ");
 				term.resume();
-			}, 800);
-			term.pause();
-		}
-
-		function documents(term, name) {
-			term.echo("Fetching secret documents of " + name + " ...");
-			setTimeout(function() {
-				term.echo("WARNING: The data maybe encrypted.");
-				var text = "";
-				var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-				for( var i=0; i < 500; i++ )
-					text += possible.charAt(Math.floor(Math.random() * possible.length));
-				term.echo(text);
-				term.resume();
-			}, 2000);
+			}, 200);
 			term.pause();
 		}
 
 		function help(term, comname) {
+			if(comname!=undefined)
+				comname = comname.split(' ');
+			//alert(comname);
 			if(comname==undefined)
 			{
 				term.echo("---------------------------help-----------------------");
 				term.echo("list of commands:\n");
-				term.echo("▬▬▬ For local-storage:");
+				term.echo("▬▬▬ General:");
+				term.echo("\tclear - clears the terminal screen.");
+				term.echo("\texit - exits from an interpreter.\n");
+				term.echo("▬▬▬ Local-storage:");
 				term.echo("\tfind <object> - checks if anything related to <object> is stored in the local-storage.");
 				term.echo("\tview <object> - allows you to view all the stored data related to <object> (in the whole local-storage).");
-				term.echo("\tshow <object> - shows all stored data related to <object> (in the travelog local-storage only).");
-				term.echo("\tstore <object> - Stores <object> as a string in the local-storage (not fiddling with the travelog).");
+				term.echo("\tstore <object> - Stores <object> as a string in the local-storage.");
 				term.echo("\tclean <object> - removes the entry containing <object> from the local-storage.\n");
-				term.echo("▬▬▬ For google-maps API:");
+				term.echo("▬▬▬ Google-maps API:");
 				term.echo("\ttellname <latitude> <longitude> - tells the name of the place with given <latitude> and <longitude>.");
 				term.echo("\ttellcoords <place> - tells the latitude and longitude of <place>.\n");
-				term.echo("For detailed help on a command, use help <command.name>");
-				term.echo("-------------------------------------------------------\n");
+				term.echo("▬▬▬ Utility:");
+				term.echo("\tpermute <string> - lists all permutations of <string>.");
+				term.echo("\nFor detailed help on a command, use help <command.name>");
+				term.echo("-------------------------------------------------------");
 			}
-			else if(comname=="find")
+			else if(comname[0]=="find")
 			{
-				term.echo("--------------------------------------\n");
+				term.echo("--------------------------------------");
 				term.echo("\"find\" command checks if anything related to <object> is stored in the local-storage.\nusage syntax: find <object>");
-				term.echo("--------------------------------------\n");
+				term.echo("--------------------------------------");
 			}
-			else if(comname=="view")
+			else if(comname[0]=="view")
 			{
-				term.echo("--------------------------------------\n");
-				term.echo("\"view\" command displays all the data elements stored in the local-storage that contain <object> in them.\nusage syntax: view <object>\nIf <object> is not mentioned then all stored data (only in the terminal local-storage) will be shown.");
-				term.echo("--------------------------------------\n");
+				term.echo("--------------------------------------");
+				term.echo("\"view\" command displays all the data elements stored in the local-storage that contain <object> in them.\nusage syntax: view <object>\nIf <object> is not mentioned then all stored data will be shown.");
+				term.echo("--------------------------------------");
 			}
-			else if(comname=="show")
+			else if(comname[0]=="store")
 			{
-				term.echo("--------------------------------------\n");
-				term.echo("\"show\" command displays all the data elements stored in the travelog local-storage that contain <object> in them.\nusage syntax: show <object>\nIf <object> is not mentioned then all stored data will be shown.");
-				term.echo("--------------------------------------\n");
+				term.echo("--------------------------------------");
+				term.echo("\"store\" command stores any piece of information as a string in the local-storage.\nusage syntax: store <object>");
+				term.echo("--------------------------------------");
+			}else if(comname[0]=="permute")
+			{
+				term.echo("--------------------------------------");
+				term.echo("\"permute\" command lists all the permutations of a string.\nusage syntax: permute <string>");
+				term.echo("--------------------------------------");
 			}
-			else if(comname=="store")
+			else if(comname[0]=="clean")
 			{
-				term.echo("--------------------------------------\n");
-				term.echo("\"store\" command stores any piece of information as a string in the local-storage (does not merge with the travelog).\nusage syntax: store <object>");
-				term.echo("--------------------------------------\n");
+				if(comname[1]=="all")
+				{
+					term.echo("--------------------------------------");
+					term.echo("This will erase everything from the local-storage.");
+					term.error("Warning: Consequences are irreversible.");
+					term.echo("--------------------------------------");
+				}
+				else if(comname[1]=='')
+				{
+					term.echo("--------------------------------------");
+					term.echo("\"clean\" command deletes all entries containing <object> from the local-storage.\nusage syntax: clean <object>\nIf <object> = \"all\", then all data will be deleted.");
+					term.error("Warning: If <object> is found at more than one places, all occurences will be deleted.");
+					term.echo("--------------------------------------");
+				}
+				else
+					term.error("This is not a valid command.");
+					term.echo(' ');
 			}
-			else if(comname=="clean")
+			else if(comname[0]=="tellname")
 			{
-				term.echo("--------------------------------------\n");
-				term.echo("\"clean\" command deletes the entry containing <object> from the local-storage.\nusage syntax: clean <object>\nIf <object> = \"all\", then all data will be deleted.");
-				term.error("Warning: Use with caution. Consequences are irreparable. Note that this command does not clean any data from the travelog.\n");
-				term.echo("--------------------------------------\n");
-			}
-			else if(comname=="tellname")
-			{
-				term.echo("--------------------------------------\n");
+				term.echo("--------------------------------------");
 				term.echo("\"tellname\" command gives the name of the place with given <latitude> and <longitude>.\nusage syntax: tellname <latitude> <longitude>\nIf <latitude> <longitude> are not mentioned then coordinates of current location will be fetched.\n");
-				term.echo("--------------------------------------\n");
+				term.echo("--------------------------------------");
 			}
-			else if(comname=="tellcoords")
+			else if(comname[0]=="tellcoords")
 			{
-				term.echo("--------------------------------------\n");
+				term.echo("--------------------------------------");
 				term.echo("\"tellcoords\" command gives the coordinates of the place with <name> contained in its actual full name.\nusage syntax: tellcoords <name>\nIf more than one places are found then all places will be listed.\n");
-				term.echo("--------------------------------------\n");
+				term.echo("--------------------------------------");
+			}
+			else if(comname[0]=="clear")
+			{
+				term.echo("--------------------------------------");
+				term.echo("\"clear\" command clears the terminal screen.\nusage syntax: clear\n");
+				term.echo("--------------------------------------");
+			}
+			else
+			{
+				fullname = '';
+				for(var i=0; i<comname.length; i++)
+					fullname += comname[i] + ' ';
+				term.error("\""+fullname.trim()+"\" command does not exist.")
+				term.echo("Type help for a list of valid commands.");
+				term.echo(' ');
 			}
 		}
 
 		jQuery(function($, undefined) {
 			$('#terminal').terminal(function(command, term) {
-				if (command !== '') {
+				validcoms = ['help', 'find', 'view', 'store', 'clean', 'permute', 'tellname', 'tellcoords']
+				if (command !== '')
+				{
 					command = command.toLowerCase();
-					var tokens = command.split(" ");
-					switch (tokens[0]) {
-						case 'find':
-							if(tokens[1]==undefined){
-								term.echo("Incomplete command! Use help.");
+					command = command.trim();
+					var tokens = command.split(' ');
+					if(validcoms.indexOf(tokens[0])<0)
+					{
+						term.error("Invalid command! Type help for a list of valid commands.");
+						term.echo(' ');
+					}
+					else
+					{
+						switch (tokens[0]) {
+							case 'find':
+								if(tokens[1]==undefined)
+								{
+									term.echo("Incomplete command! Use help.");
+									term.echo(" ");
+									break;
+								}
+								var new_token = "";
+								for(var i=1; i<tokens.length; i++)
+								{
+									new_token = new_token + tokens[i] + " ";
+								}
+								find(term, new_token.trim());
 								break;
-							}
-							var new_token = "";
-							for(var i=1; i<tokens.length-1; i++)
-							{
-								new_token = new_token + tokens[i] + " ";
-							}
-							new_token = new_token + tokens[i];
-							find(term, new_token);
-							break;
-						case 'view':
-							view(term, tokens[1]);
-							break;
-						case 'clean':
-							if(tokens[1]==undefined){
-								term.echo("Incomplete command! Use help.");
+							case 'view':
+								if(tokens[1]==undefined)
+								{
+									view(term);
+									break;
+								}
+								var new_token = "";
+								for(var i=1; i<tokens.length; i++)
+								{
+									new_token = new_token + tokens[i] + " ";
+								}
+								view(term, new_token.trim());
 								break;
-							}
-							var new_token = "";
-							for(var i=1; i<tokens.length-1; i++)
-							{
-								new_token = new_token + tokens[i] + " ";
-							}
-							new_token = new_token + tokens[i];
-							clean(term, new_token);
-							break;
-						case 'store':
-							if(tokens[1]==undefined){
-								term.echo("Incomplete command! Use help.");
+							case 'clean':
+								if(tokens[1]==undefined)
+								{
+									term.echo("Incomplete command! Use help.");
+									term.echo(" ");
+									break;
+								}
+								var new_token = "";
+								for(var i=1; i<tokens.length; i++)
+								{
+									new_token = new_token + tokens[i] + " ";
+								}
+								clean(term, new_token.trim());
 								break;
-							}
-							var new_token = "";
-							for(var i=1; i<tokens.length-1; i++)
-							{
-								new_token = new_token + tokens[i] + " ";
-							}
-							new_token = new_token + tokens[i];
-							store(term, new_token);
-							break;
-						case 'tellname':
-							if(tokens[1]==undefined || tokens[2]==undefined){
-								term.echo("Incomplete command. Use help.");
+							case 'store':
+								if(tokens[1]==undefined)
+								{
+									term.echo("Incomplete command! Use help.");
+									term.echo(" ");
+									break;
+								}
+								var new_token = "";
+								for(var i=1; i<tokens.length; i++)
+								{
+									new_token = new_token + tokens[i] + " ";
+								}
+								store(term, new_token.trim());
 								break;
-							}
-							tellname(term, tokens[1], tokens[2]);
-							break;
-						case 'tellcoords':
-							if(tokens[1]==undefined){
-								term.echo("Incomplete command. Use help.");
+							case 'permute':
+								if(tokens[1]==undefined)
+								{
+									term.echo("Incomplete command! Use help.");
+									term.echo(" ");
+									break;
+								}
+								var new_token = "";
+								for(var i=1; i<tokens.length; i++)
+								{
+									new_token = new_token + tokens[i] + " ";
+								}
+								permute(term, new_token.trim());
 								break;
-							}
-							var new_token = "";
-							for(var i=1; i<tokens.length-1; i++){
-								new_token = new_token + tokens[i] + " ";
-							}
-							new_token = new_token + tokens[i];
-							tellcoords(term, new_token);
-							break;
-						case 'help':
-							help(term, tokens[1]);
-							break;
-						default:
-							term.error("Invalid command! Type help for a list of valid commands.");
+							case 'tellname':
+								if(tokens[1]==undefined || tokens[2]==undefined || parseFloat(tokens[1])==NaN || parseFloat(tokens[2])==NaN)
+								{
+									term.echo("Incomplete command or invalid format. Use help.");
+									term.echo(' ');
+									break;
+								}
+								tellname(term, tokens[1], tokens[2]);
+								break;
+							case 'tellcoords':
+								if(tokens[1]==undefined){
+									//tell coords of current place.
+									break;
+								}
+								var new_token = "";
+								for(var i=1; i<tokens.length; i++){
+									new_token = new_token + tokens[i] + " ";
+								}
+								tellcoords(term, new_token.trim());
+								break;
+							case 'help':
+								if(tokens[1]==undefined)
+								{
+									help(term, tokens[1]);
+									break;
+								}
+								else
+									var new_token = "";
+									for(var i=1; i<tokens.length; i++)
+									{
+										new_token = new_token + tokens[i] + " ";
+									}							
+									help(term, new_token);
+									break;
+							default:
+								term.error("Sorry but this command is no longer available for use.");
+								term.echo(' ');
+						}
 					}
 				}
 				else {
-					term.echo('');
+					term.echo(' ');
 				}
 			},
 			{
 				greetings: 'Welcome to the Apparena Console. Type help for a list of commands.\n',
 				name: 'apparena_console',
 				height: 500,
-				prompt: '> '
+				prompt: '$ '
 			});
 		});
 	</script>
