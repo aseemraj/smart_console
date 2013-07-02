@@ -11,64 +11,47 @@
     <link href="css/style.css" rel="stylesheet">
     <link href="css/jquery.terminal.css" rel="stylesheet">
   </head>
-  
+
   <body>
+	<div id="logo"></div>
     <div id="terminal"></div>
     <script src="js/jquery-1.7.1.min.js"></script>
     <script src="js/jquery.terminal-min.js"></script>
 	<script type="text/javascript">
-		function rev(value) {
+		function rev(value)
+		{
 			var reverse = ""
 			for(var i=0; i<value.length; i++)
 				reverse += value[value.length-1-i];
 			return reverse;
 		}
-		function permute(term, object) {
-			var p = "";
-			var words = [];
-			var letters = object.trim().split('');
-			for(var i=0; i<letters.length; i++)
+		function permute(object)
+		{
+			//alert(object);
+			if(object.length<=1)
 			{
-				p = "";
-				for(var j=0; j<letters.length; j++)
-				{
-					if(j+i<letters.length)
-						p += letters[j+i];
-					else
-						break;
-				}
-				for(var j=0; j<i; j++)
-				{
-					p += letters[j];
-				}
-				if(words.indexOf(p)<0)
-					words.push(p);
-				if(words.indexOf(rev(p))<0)
-					words.push(rev(p));
+				var res = [];
+				res.push(object);
+				return res;
 			}
-			var c = 0;
-			var last = "";
-			var nlast = "";
-			if(letters.length<15)
-				d = 7;
-			else if(letters.length>=15 && letters.length<31)
-				d = 5;
-			else if(letters.length>30 && letters.length<35)
-				d = 4;
-			else
-				d = 2;
-			for(var i=0; i<=words.length-d; i+=d, c++)
+			//get all permutations of length N-1
+			var perms = permute(object.substring(1, object.length))
+			var ch = object[0];
+			var result=[];
+			var perm = '';
+			//iterate over all permutations of length N-1
+			for(var j=0; j<perms.length; j++)
 			{
-				nlast = "";
-				for(var j=0; j<d; j++)
-					nlast += words[i+j]+'\t\t'
-				term.echo(nlast.trim());
+				perm = perms[j];
+				//insert the character into every possible location
+				for(var i=0; i<=perm.length; i++)
+				{
+					var addthis = perm.substring(0, i) + ch + perm.substring(i, perm.length);
+					if(result.indexOf(addthis)<0)
+						result.push(addthis);
+				}
 			}
-			for(i=0; i<words.length-d*c; i++)
-				last += words[d*c+i]+"\t\t"
-			if(last!="")
-				term.echo(last);
-			
+			return result;
 		}
 		
 		function find(term, object)
@@ -76,7 +59,7 @@
 			term.echo("Checking if any information related to \"" + object + "\" is present in the database ...");
 			setTimeout(function() {
 				var found = 0;
-				var retrieve = localStorage.getItem("term");
+				var retrieve = localStorage.getItem("default");
 				if(retrieve)
 				{
 					var count = 0;
@@ -94,7 +77,7 @@
 					{
 						var count=0;
 						var scattered = [];
-						var elements = object.split(" ");
+						var elements = object.split(' ');
 						for(var i=0; i<retrieve.length; i++)
 						{
 							for(j=0; j<elements.length; j++)
@@ -141,80 +124,133 @@
 			term.pause();
 		}
 		
-		function view(term, object) {
+		function view_database(term, dname)
+		{
+			var retrieve = localStorage.getItem(dname);
+			if(retrieve)
+			{
+				if(JSON.parse(retrieve).length==0)
+				{
+					term.echo('This database is empty.');
+					term.echo(' ');
+					return;
+				}
+				retrieve = JSON.parse(retrieve);
+				for(var i=0; i<retrieve.length; i++)
+					term.echo((i+1)+'. '+retrieve[i]);
+			}
+			else
+			{
+				if(dname=="default")
+					term.error("Nothing is stored in the default database yet!");
+				else
+					term.error('No such database as "'+dname+'" found!');
+			}
+			term.echo(' ');
+		}
+		
+		function view(term, object)
+		{
 			if(object==undefined)
-				term.echo("Please wait while all data is fetched from the local-storage ...");
+				term.echo("Please wait while all data is fetched from the default database ...");
 			else
 				term.echo("Finding \"" + object + "\" in the database ...");
-			setTimeout(function() {
-				if(object==undefined)
+			if(object==undefined)
+			{
+				var retrieve = localStorage.getItem("default");
+				if(retrieve)
 				{
-					var retrieve = localStorage.getItem("term");
-					if(retrieve)
+					if(JSON.parse(retrieve).length==0)
 					{
-						retrieve = JSON.parse(retrieve);
-						for(var i=0; i<retrieve.length; i++)
-							term.echo((i+1)+". "+retrieve[i]+".");
+						term.echo('This database is empty.');
+						term.echo(' ');
+						return;
 					}
-					else
-						term.error("No data stored!");
+					retrieve = JSON.parse(retrieve);
+					for(var i=0; i<retrieve.length; i++)
+						term.echo((i+1)+". "+retrieve[i]);
 				}
-				
 				else
 				{
-					var retrieve = localStorage.getItem("term");
-					var j=0;
-					var found = 0;
-					if(retrieve)
+					term.error("No data stored in the default database!");
+					term.echo("Use \"view database <name>\" to find objects in other databases");
+				}
+			}
+			
+			else
+			{
+				var retrieve = localStorage.getItem("default");
+				var j=0;
+				var found = 0;
+				if(retrieve)
+				{
+					retrieve = JSON.parse(retrieve);
+					for(var i=0; i<retrieve.length; i++)
 					{
-						retrieve = JSON.parse(retrieve);
-						for(var i=0; i<retrieve.length; i++)
+						if(retrieve[i].indexOf(object)>-1)
 						{
-							if(retrieve[i].indexOf(object)>-1)
-							{
-								found = 1;
-								term.echo((j+1) + ". " + retrieve[i]);
-								j++;
-							}
-						}
-						if(found==0)
-						{
-							var scattered = [];
-							var elements = object.split(" ");
-							//term.echo("No data found relating to \""+object+"\" but parts of the query were found at different places.\nThe traced data is listed below:");
-							for(var i=0; i<retrieve.length; i++)
-							{
-								for(j=0; j<elements.length; j++)
-								{
-									if(retrieve[i].indexOf(elements[j])>-1)
-									{
-										found = 1;
-										if(scattered.indexOf(retrieve[i]<0))
-											scattered.push(retrieve[i]);
-										break;
-									}
-								}
-							}
-							if(found==1)
-							{
-								term.error("No data found relating to \""+object+"\"");
-								term.echo("but parts of the query were found at different places.\nThe traced data is listed below:");
-								for(i=0; i<scattered.length; i++)
-									term.echo((i+1) + ". " + scattered[i]);
-							}
-							else
-								term.error("Nothing found relating to your query.");
+							found = 1;
+							term.echo((j+1) + ". " + retrieve[i]);
+							j++;
 						}
 					}
-					else
-						term.error("Local-storage is vacant. No data found.");
+					if(found==0)
+					{
+						var scattered = [];
+						var elements = object.split(" ");
+						for(var i=0; i<retrieve.length; i++)
+						{
+							for(j=0; j<elements.length; j++)
+							{
+								if(retrieve[i].indexOf(elements[j])>-1)
+								{
+									found = 1;
+									if(scattered.indexOf(retrieve[i]<0))
+										scattered.push(retrieve[i]);
+									break;
+								}
+							}
+						}
+						if(found==1)
+						{
+							term.error("No data found relating to \""+object+"\"");
+							term.echo("but parts of the query were found at certain places.");
+							term.echo("The traced data is listed below:");
+							for(i=0; i<scattered.length; i++)
+								term.echo((i+1) + ". " + scattered[i]);
+						}
+						else
+							term.error("Nothing found relating to your query.");
+					}
 				}
-				term.echo(" ");
-				term.resume();
-			}, 200);
-			term.pause();
+				else
+					term.error("Default database is vacant. No data found.");
+			}
+			term.echo(' ');
 		}
 
+		function clean_database(term, name) {
+			if(name!=undefined)
+			{
+				var ret = localStorage.getItem(name);
+				if(ret)
+				{
+					localStorage.removeItem(name);
+					term.echo("All data in the database named \""+name+"\" was successfully deleted.");
+				}
+				else
+				{
+					if(name=='default')
+						term.error('No data is stored yet in the default database.');
+					else
+						term.error("No such non-empty database exists!");
+				}
+			}
+			else
+				term.echo('Incomplete command! Use help.');
+			term.echo(' ');
+		}
+		
 		function clean(term, name) {
 			if(name=="all")
 				term.echo("Cleaning everything ...");
@@ -222,51 +258,46 @@
 			{
 				term.echo("Attempting to clean ...");
 			}
-			setTimeout(function() {
-				var retrieve = localStorage.getItem("term");
-				if(name=="all")
+			
+			var retrieve = localStorage.getItem("default");
+			if(name=="all")
+			{
+				localStorage.clear();
+				term.echo("All databases deleted.");
+				term.echo("All users deleted.");
+			}
+			else if(retrieve==null)
+			{
+				term.error("Content not found. Nothing was deleted.");
+			}
+			else
+			{
+				var found = 0;
+				retrieve = JSON.parse(retrieve);
+				for(var i=0; i<retrieve.length; i++)
 				{
-					localStorage.removeItem("term");
-					term.echo("Everything deleted.");
-				}
-				else if(retrieve==null)
-				{
-					term.error("Content not found. Nothing was deleted.");
-				}
-				else
-				{
-					var found = 0;
-					retrieve = JSON.parse(retrieve);
-					for(var i=0; i<retrieve.length; i++)
+					if(retrieve[i].indexOf(name)>-1)
 					{
-						if(retrieve[i].indexOf(name)>-1)
-						{
-							found = 1;
-							for(var j=i;j<retrieve.length-1; j++)
-								retrieve[j] = retrieve[j+1];
-							retrieve.pop();
-							i--;
-						}
+						found = 1;
+						for(var j=i;j<retrieve.length-1; j++)
+							retrieve[j] = retrieve[j+1];
+						retrieve.pop();
+						i--;
 					}
-					if(retrieve.length>0)
-						localStorage.setItem("term", JSON.stringify(retrieve));
-					else
-						localStorage.removeItem("term");
-					if(found==0)
-						term.error("Content not found. Nothing was deleted.");
-					else
-						term.echo("All information related to \""+name+"\" is successfully removed.");
 				}
-				term.echo(" ");
-				term.resume();
-			}, 200);
-			term.pause();
+				localStorage.setItem("default", JSON.stringify(retrieve));
+				if(found==0)
+					term.error("Content not found. Nothing was deleted.");
+				else
+					term.echo("All information related to \""+name+"\" is successfully removed.");
+			}
+			term.echo(" ");
 		}
 
 		function store(term, object) {
 			term.echo("Storing provided data ...");
 			setTimeout(function() {
-				var retrieve = localStorage.getItem("term");
+				var retrieve = localStorage.getItem("default");
 				var found = 0;
 				if(retrieve)
 				{
@@ -283,7 +314,7 @@
 					if(found==0)
 					{
 						retrieve.push(object);
-						localStorage.setItem("term",  JSON.stringify(retrieve));
+						localStorage.setItem("default",  JSON.stringify(retrieve));
 						term.echo("Data stored successfully.");
 					}
 				}
@@ -291,7 +322,7 @@
 				{
 					retrieve = [];
 					retrieve.push(object);
-					localStorage.setItem("term",  JSON.stringify(retrieve));
+					localStorage.setItem("default",  JSON.stringify(retrieve));
 					term.echo("Data stored successfully.");
 				}
 				term.echo(" ");
@@ -396,9 +427,54 @@
 			}
 		}
 
+		function create(term, entity, name)
+		{
+			if(entity=='database')
+			{
+				var ret = localStorage.getItem(name);
+				if(ret)
+					term.error('A database with this name is already present. No database was created.');
+				else
+				{
+					var new_base = [];
+					localStorage.setItem(name, JSON.stringify(new_base));
+					term.echo('Database successfully created.');
+				}
+			}
+			else if(entity=='user')
+			{
+				var base = localStorage.getItem('users');
+				if(base)
+				{
+					base = JSON.parse(base);
+					for(var i=0; i<base.length; i++)
+					{
+						if(base[i].indexOf(name)>-1)
+						{
+							term.error('User "'+name+'" is already present.');
+							return;
+						}
+					}
+				}
+				else
+					var base = [];
+				var new_user = []
+				new_user.push(name);
+				base.push(new_user)
+				localStorage.setItem('users', JSON.stringify(base));
+				term.echo('User successfully created.');
+			}
+			else
+			{
+				term.error('Sorry! An unknown error occured.');
+			}
+			term.echo(' ');
+		}
+		
 		jQuery(function($, undefined) {
-			$('#terminal').terminal(function(command, term) {
-				validcoms = ['help', 'find', 'view', 'store', 'clean', 'permute', 'tellname', 'tellcoords']
+			$('#terminal').terminal(function(command, term)
+			{
+				validcoms = ['help', 'find', 'view', 'store', 'clean', 'permute', 'tellname', 'tellcoords', 'create', 'tips']
 				if (command !== '')
 				{
 					command = command.toLowerCase();
@@ -411,7 +487,8 @@
 					}
 					else
 					{
-						switch (tokens[0]) {
+						switch (tokens[0])
+						{
 							case 'find':
 								if(tokens[1]==undefined)
 								{
@@ -432,6 +509,24 @@
 									view(term);
 									break;
 								}
+								else if(tokens[1]=='database')
+								{
+									if(tokens[2]!=undefined)
+									{
+										var new_token = '';
+										for(var i=2; i<tokens.length; i++)
+										{
+											new_token = new_token + tokens[i] + " ";
+										}
+										view_database(term, new_token.trim());
+									}
+									else
+									{
+										term.echo('Incomplete command! Use help.');
+										term.echo(' ');
+									}
+									break;
+								}
 								var new_token = "";
 								for(var i=1; i<tokens.length; i++)
 								{
@@ -444,6 +539,11 @@
 								{
 									term.echo("Incomplete command! Use help.");
 									term.echo(" ");
+									break;
+								}
+								if(tokens[1]=='database')
+								{
+									clean_database(term, tokens[2]);
 									break;
 								}
 								var new_token = "";
@@ -479,7 +579,34 @@
 								{
 									new_token = new_token + tokens[i] + " ";
 								}
-								permute(term, new_token.trim());
+								var letters = new_token.trim();
+								if(letters.length<=5)
+									d = 15;
+								else if(letters.length>=5 && letters.length<=7)
+									d = 13;
+								else
+								{
+									term.error('Sorry! Being a string too long, it will take too long to process.');
+									term.echo('Enter a string with atmost 7 characters.');
+									term.echo(' ');
+									break;
+								}
+								var result = permute(letters);
+								var c = 0;
+								var nlast = '';
+								var last = '';
+								for(var i=0; i<=result.length-d; i+=d, c++)
+								{
+									nlast = "";
+									for(var j=0; j<d; j++)
+										nlast += result[i+j]+'\t'
+									term.echo(nlast.trim());
+								}
+								for(i=0; i<result.length-d*c; i++)
+									last += result[d*c+i]+"\t"
+								if(last!="")
+									term.echo(last);
+								term.echo(' ');
 								break;
 							case 'tellname':
 								if(tokens[1]==undefined || tokens[2]==undefined || parseFloat(tokens[1])==NaN || parseFloat(tokens[2])==NaN)
@@ -515,23 +642,72 @@
 									}							
 									help(term, new_token);
 									break;
+							case 'create':
+								var new_token = '';
+								for(var i=2; i<tokens.length; i++)
+								{
+									new_token = new_token + tokens[i] + " ";
+								}
+								if(tokens[1]=='database' && tokens[2] != undefined)
+									create(term, 'database', new_token.trim());
+								else if(tokens[1]=='user' && tokens[2] != undefined)
+									create(term, 'user', new_token.trim());
+								else
+								{
+									term.error('Incomplete or invalid command! Use help.');
+									term.echo(' ');
+								}
+								break;
 							default:
-								term.error("Sorry but this command is no longer available for use.");
+								term.error("Sorry but this command is no lnoger available for use.");
 								term.echo(' ');
 						}
 					}
 				}
-				else {
-					term.echo(' ');
+				else
+				{
+					term.echo('');
 				}
 			},
 			{
-				greetings: 'Welcome to the Apparena Console. Type help for a list of commands.\n',
+				greetings: 'Welcome to Smart Console. Type help for a list of commands. Copyright (c) Aseem Raj 2013\n',
 				name: 'apparena_console',
 				height: 500,
 				prompt: '$ '
 			});
 		});
+		/*
+		jQuery(function($, undefined)
+		{
+			$('#term_demo').terminal(function(command, term)
+			{
+				if (command !== '')
+				{
+					try
+					{
+						var result = window.eval(command);
+						if (result !== undefined)
+						{
+							term.echo(new String(result));
+						}
+					}
+					catch(e)
+					{
+						term.error(new String(e));
+					}
+				}
+				else
+				{
+					term.echo('');
+				}
+			},
+			{
+				greetings: 'Javascript Interpreter',
+				name: 'js_demo',
+				height: 200,
+				prompt: 'js> '});
+			});
+		*/
 	</script>
   </body>
 </html>
