@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <meta charset="utf-8">
-    <title>Apparena Console</title>
+    <title>Smart Console</title>
     <meta name="description" content="Apparena Console">
     <meta name="keywords" content="Apparena Console">
     <link href="css/style.css" rel="stylesheet">
@@ -54,8 +54,7 @@
 			return result;
 		}
 		
-		function find(term, object)
-		{
+		function find(term, object) {
 			term.echo("Checking if any information related to \"" + object + "\" is present in the database ...");
 			setTimeout(function() {
 				var found = 0;
@@ -124,8 +123,7 @@
 			term.pause();
 		}
 		
-		function view_database(term, dname)
-		{
+		function view_database(term, dname) {
 			var retrieve = localStorage.getItem(dname);
 			if(retrieve)
 			{
@@ -149,8 +147,7 @@
 			term.echo(' ');
 		}
 		
-		function view(term, object)
-		{
+		function view(term, object) {
 			if(object==undefined)
 				term.echo("Please wait while all data is fetched from the default database ...");
 			else
@@ -427,8 +424,7 @@
 			}
 		}
 
-		function create(term, entity, name)
-		{
+		function create(term, entity, name) {
 			if(entity=='database')
 			{
 				var ret = localStorage.getItem(name);
@@ -482,7 +478,18 @@
 					var tokens = command.split(' ');
 					if(validcoms.indexOf(tokens[0])<0)
 					{
-						term.error("Invalid command! Type help for a list of valid commands.");
+						try
+						{
+							var result = window.eval(command);
+							if (result !== undefined)
+							{
+								term.echo(new String(result));
+							}
+						}
+						catch(e)
+						{
+							term.error(new String(e));
+						}
 						term.echo(' ');
 					}
 					else
@@ -671,7 +678,7 @@
 			},
 			{
 				greetings: 'Welcome to Smart Console. Type help for a list of commands. Copyright (c) Aseem Raj 2013\n',
-				name: 'apparena_console',
+				name: 'smart_console',
 				height: 500,
 				prompt: '$ '
 			});
